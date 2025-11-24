@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CareBridge 看護快線 | 使用者端 App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --cb-green: #00A693;
+            --cb-blue: #0060A0;
+            --cb-bg: #f4f7f6;
+            --cb-text: #333;
+            --nav-height: 70px;
+        }
+
+        body {
+            background-color: #e9ecef; /* 電腦版背景 */
+            font-family: 'Noto Sans TC', sans-serif;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* --- 手機模擬容器 --- */
+        .app-container {
+            width: 100%;
+            max-width: 414px; /* iPhone Max width */
+            background-color: #ffffff;
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 頂部導航 Header --- */
+        .app-header {
+            height: 60px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .app-header h1 { font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--cb-blue); }
+        .back-btn { cursor: pointer; font-size: 1.2rem; color: #666; display: none; } /* 預設隱藏 */
+
+        /* --- 內容滾動區 --- */
+        .app-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: var(--nav-height); /* 避開底部導航 */
+            background-color: var(--cb-bg);
+        }
+        /* 隱藏 Scrollbar */
+        .app-content::-webkit-scrollbar { display: none; }
+
+        /* --- 底部導航 Bottom Nav --- */
+        .bottom-nav {
+            height: var(--nav-height);
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            z-index: 100;
+        }
+        .nav-item {
+            text-align: center;
+            color: #999;
+            font-size: 0.75rem;
+            cursor: pointer;
+            flex: 1;
+            transition: 0.2s;
+        }
+        .nav-item i { font-size: 1.4rem; margin-bottom: 4px; display: block; }
+        .nav-item.active { color: var(--cb-blue); font-weight: 500; }
+
+        /* --- 元件樣式 --- */
+        /* 卡片 */
+        .cb-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            border: 1px solid #f0f0f0;
+        }
+
+        /* 按鈕 */
+        .btn-cb-primary {
+            background: var(--cb-blue);
+            color: white;
+            border-radius: 8px;
+            border: none;
+            padding: 10px 20px;
+            width: 100%;
+            font-weight: 500;
+        }
+        .btn-cb-primary:active { background: #004d80; }
+
+        /* 服務類別按鈕 Grid */
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            padding: 0 15px;
+        }
+        .service-item {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .service-item:hover, .service-item.selected {
+            border-color: var(--cb-green);
+            background-color: #f0fffd;
+        }
+        .service-icon {
+            width: 50px; height: 50px;
+            background: #eefcf9;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            color: var(--cb-green);
+            font-size: 1.2rem;
+        }
+
+        /* 照服員列表卡片 */
+        .caregiver-card {
+            display: flex;
+            background: white;
+            margin: 10px 15px;
+            padding: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: 0.2s;
+        }
+        .caregiver-card:hover { border-color: var(--cb-blue); transform: translateY(-2px); }
+        
+        .avatar {
+            width: 70px; height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+            border: 2px solid #eee;
+        }
+        
+        .badges span {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 4px;
+        }
+        .badge-l1 { background: #f0f0f0; color: #666; }
+        .badge-l2 { background: #e3f2fd; color: var(--cb-blue); }
+        .badge-l3 { background: #fff8e1; color: #f57f17; border: 1px solid #f57f17; }
+        .badge-trust { background: #e8f5e9; color: #2e7d32; }
+
+        /* 履歷詳情頁 */
+        .profile-header-bg {
+            background: linear-gradient(135deg, var(--cb-blue), var(--cb-green));
+            height: 120px;
+            border-radius: 0 0 20px 20px;
+            margin-bottom: 50px;
+            position: relative;
+        }
+        .profile-avatar-lg {
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            border: 4px solid white;
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            object-fit: cover;
+        }
+
+        /* O2O 莊園卡片 */
+        .village-card {
+            height: 180px;
+            border-radius: 12px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            overflow: hidden;
+            margin: 15px;
+        }
+        .village-card::before {
+            content: '';
+            position: absolute;
+            top:0; left:0; width:100%; height:100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+        }
+        .village-info {
+            position: relative;
+            z-index: 1;
+            padding: 15px;
+            color: white;
+            width: 100%;
+        }
+
+        /* Views (用 JS 切換顯示) */
+        .view-section { display: none; animation: fadeIn 0.3s; }
+        .view-section.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <!-- Header -->
+    <div class="app-header">
+        <div class="back-btn" id="backBtn" onclick="goBack()"><i class="fas fa-arrow-left"></i></div>
+        <h1 id="pageTitle">CareBridge</h1>
+        <div class="position-relative">
+            <i class="fas fa-bell text-secondary" style="font-size: 1.2rem;"></i>
+            <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
+        </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="app-content">
+
+        <!-- VIEW 1: Home 首頁 -->
+        <div id="view-home" class="view-section active">
+            <!-- Welcome Section -->
+            <div class="p-3 pb-0">
+                <h4 class="fw-bold mb-1">早安，小明 👋</h4>
+                <p class="text-muted small">今天想為家人安排什麼服務？</p>
+            </div>
+
+            <!-- 進行中的訂單 (Active Order) -->
+            <div class="cb-card bg-white border-start border-4 border-success" onclick="goToOrderTracking()">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-success bg-opacity-10 text-success">進行中</span>
+                    <small class="text-muted">預計 17:00 結束</small>
+                </div>
+                <h6 class="fw-bold mb-1">居家陪伴照護</h6>
+                <div class="d-flex align-items-center mt-2">
+                    <img src="https://randomuser.me/api/portraits/women/44.jpg" class="rounded-circle me-2" width="30">
+                    <small>陳照服員 (L2) 正在服務中...</small>
+                    <i class="fas fa-chevron-right ms-auto text-muted"></i>
+                </div>
+            </div>
+
+            <!-- 服務選擇 Grid -->
+            <h6 class="px-3 mt-3 fw-bold text-secondary">預約新服務</h6>
+            <div class="service-grid">
+                <div class="service-item" onclick="startBooking('居家照護')">
+                    <div class="service-icon"><i class="fas fa-home"></i></div>
+                    <div class="fw-bold">居家照護</div>
+                    <div class="small text-muted">陪伴、家務</div>
+                </div>
+                <div class="service-item" onclick="startBooking('陪同就醫')">
+                    <div class="service-icon"><i class="fas fa-hospital-user"></i></div>
+                    <div class="fw-bold">陪同就醫</div>
+                    <div class="small text-muted">看診、拿藥</div>
+                </div>
+                <div class="service-item" onclick="startBooking('餐食服務')">
+                    <div class="service-icon"><i class="fas fa-utensils"></i></div>
+                    <div class="fw-bold">餐食服務</div>
+                    <div class="small text-muted">備餐、餵食</div>
+                </div>
+                <div class="service-item" onclick="startBooking('臨時托顧')">
+                    <div class="service-icon"><i class="fas fa-child"></i></div>
+                    <div class="fw-bold">臨時托顧</div>
+                    <div class="small text-muted">緊急支援</div>
+                </div>
+            </div>
+
+            <!-- O2O Banner -->
+            <h6 class="px-3 mt-4 fw-bold text-secondary">CareBridge 莊園</h6>
+            <div class="village-card" style="background-image: url('https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80');" onclick="switchTab('village')">
+                <div class="village-info">
+                    <h5 class="fw-bold mb-1">南投草屯・法式莊園</h5>
+                    <p class="small mb-0 opacity-75">頂級短期喘息服務，每晚 $2,500 起</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: Booking Form 填寫需求 -->
+        <div id="view-booking-form" class="view-section">
+            <div class="p-3">
+                <h5 class="fw-bold mb-3">填寫預約需求</h5>
+                
+                <div class="cb-card mx-0">
+                    <label class="form-label text-muted small">服務類型</label>
+                    <input type="text" class="form-control fw-bold mb-3" id="selectedServiceType" value="居家照護" readonly>
+
+                    <label class="form-label text-muted small">服務地址</label>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text bg-white"><i class="fas fa-map-marker-alt text-danger"></i></span>
+                        <input type="text" class="form-control" value="南投縣草屯鎮中正路55號">
+                    </div>
+
+                    <label class="form-label text-muted small">日期與時間</label>
+                    <div class="row g-2 mb-3">
+                        <div class="col-7">
+                            <input type="date" class="form-control" value="2025-11-25">
+                        </div>
+                        <div class="col-5">
+                            <select class="form-select">
+                                <option>09:00</option>
+                                <option>14:00</option>
+                                <option>18:00</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <label class="form-label text-muted small">服務時數</label>
+                    <div class="btn-group w-100 mb-3" role="group">
+                        <input type="radio" class="btn-check" name="hours" id="h3" autocomplete="off" checked>
+                        <label class="btn btn-outline-primary" for="h3">3小時</label>
+                        <input type="radio" class="btn-check" name="hours" id="h6" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="h6">6小時</label>
+                        <input type="radio" class="btn-check" name="hours" id="h9" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="h9">9小時</label>
+                    </div>
+
+                    <label class="form-label text-muted small">特殊需求 (選填)</label>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-light text-dark border p-2" onclick="toggleTag(this)">需搬運</span>
+                        <span class="badge bg-light text-dark border p-2" onclick="toggleTag(this)">自備交通工具</span>
+                        <span class="badge bg-light text-dark border p-2" onclick="toggleTag(this)">台語流利</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-cb-primary mt-3 shadow-sm" onclick="goToCaregiverList()">
+                    下一步：智能媒合 <i class="fas fa-magic ms-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- VIEW 3: Caregiver List 選擇照服員 -->
+        <div id="view-caregiver-list" class="view-section">
+            <!-- 修正：將 top: 60px 改為 top: 0，避免標頭向下位移遮擋住第一位照服員 -->
+            <div class="bg-white p-3 sticky-top border-bottom shadow-sm" style="top: 0; z-index: 90;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">AI 為您推薦 3 位適合人選</small>
+                    <button class="btn btn-sm btn-outline-secondary"><i class="fas fa-filter"></i> 篩選</button>
+                </div>
+            </div>
+
+            <!-- List Items -->
+            <!-- L2 Caregiver (Best Match) -->
+            <div class="caregiver-card" onclick="viewProfile('caregiver1')">
+                <img src="https://randomuser.me/api/portraits/women/68.jpg" class="avatar">
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between">
+                        <h6 class="fw-bold mb-1">林淑芬</h6>
+                        <span class="text-danger fw-bold">$380<small class="text-muted fw-normal">/時</small></span>
+                    </div>
+                    <div class="badges mb-2">
+                        <span class="badge-l2">L2 專業級</span>
+                        <span class="badge-trust"><i class="fas fa-shield-alt"></i> 已保險</span>
+                    </div>
+                    <div class="d-flex align-items-center small text-muted mb-1">
+                        <i class="fas fa-star text-warning me-1"></i> 4.9 (150單)
+                        <span class="mx-1">|</span> 失智症照顧經驗
+                    </div>
+                    <div class="d-flex align-items-center small text-success">
+                        <i class="fas fa-check-circle me-1"></i> AI 匹配度 98%
+                    </div>
+                </div>
+            </div>
+
+            <!-- L3 Caregiver (Premium) -->
+            <div class="caregiver-card" onclick="viewProfile('caregiver2')">
+                <img src="https://randomuser.me/api/portraits/men/32.jpg" class="avatar">
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between">
+                        <h6 class="fw-bold mb-1">張志豪</h6>
+                        <span class="text-danger fw-bold">$500<small class="text-muted fw-normal">/時</small></span>
+                    </div>
+                    <div class="badges mb-2">
+                        <span class="badge-l3"><i class="fas fa-crown"></i> L3 莊園級</span>
+                        <span class="badge-trust"><i class="fas fa-shield-alt"></i> 已保險</span>
+                    </div>
+                    <div class="d-flex align-items-center small text-muted mb-1">
+                        <i class="fas fa-star text-warning me-1"></i> 5.0 (42單)
+                        <span class="mx-1">|</span> 具護理師執照
+                    </div>
+                    <div class="d-flex align-items-center small text-muted">
+                        <i class="fas fa-map-marker-alt me-1"></i> 距離 5.2 km (有專車)
+                    </div>
+                </div>
+            </div>
+
+            <!-- L1 Caregiver (Basic) -->
+            <div class="caregiver-card" onclick="viewProfile('caregiver3')">
+                <img src="https://randomuser.me/api/portraits/women/12.jpg" class="avatar">
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between">
+                        <h6 class="fw-bold mb-1">陳雅婷</h6>
+                        <span class="text-danger fw-bold">$250<small class="text-muted fw-normal">/時</small></span>
+                    </div>
+                    <div class="badges mb-2">
+                        <span class="badge-l1">L1 基礎級</span>
+                        <span class="badge-trust"><i class="fas fa-check"></i> 實名認證</span>
+                    </div>
+                    <div class="d-flex align-items-center small text-muted mb-1">
+                        <i class="fas fa-star text-warning me-1"></i> 4.7 (28單)
+                        <span class="mx-1">|</span> 陪伴、備餐
+                    </div>
+                    <div class="d-flex align-items-center small text-muted">
+                        <i class="fas fa-map-marker-alt me-1"></i> 距離 0.8 km (就在附近)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 4: Profile Detail 照服員詳情 -->
+        <div id="view-profile" class="view-section">
+            <div class="profile-header-bg">
+                <img src="" id="profile-img" class="profile-avatar-lg">
+            </div>
+            
+            <div class="text-center mt-5 px-3">
+                <h4 class="fw-bold mb-0" id="profile-name">Name</h4>
+                <p class="text-muted small mb-2" id="profile-level">Level</p>
+                <div class="d-flex justify-content-center gap-2 mb-3">
+                    <span class="badge bg-success bg-opacity-10 text-success"><i class="fas fa-shield-alt"></i> 專業責任險</span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary"><i class="fas fa-id-card"></i> 良民證</span>
+                    <span class="badge bg-info bg-opacity-10 text-info"><i class="fas fa-syringe"></i> 疫苗3劑</span>
+                </div>
+            </div>
+
+            <div class="p-3">
+                <div class="cb-card mx-0 mt-0">
+                    <h6 class="fw-bold mb-3 border-bottom pb-2">自我介紹</h6>
+                    <p class="text-muted small mb-0">
+                        您好，我有5年的照護經驗，特別擅長與長輩溝通。我持有單一級技術士證照，並曾在日照中心服務過。對待長輩我有無比的耐心，希望能為您的家人提供最好的服務。
+                    </p>
+                </div>
+
+                <div class="cb-card mx-0">
+                    <h6 class="fw-bold mb-3 border-bottom pb-2">用戶評價 (150)</h6>
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="bg-light rounded-circle p-2 me-2"><i class="fas fa-user text-secondary"></i></div>
+                        <div>
+                            <div class="d-flex justify-content-between w-100">
+                                <small class="fw-bold">李太太</small>
+                                <small class="text-warning"><i class="fas fa-star"></i> 5.0</small>
+                            </div>
+                            <p class="text-muted small mb-0">淑芬非常細心，還會教我爸爸做簡單的手指運動，非常推薦！</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-3 bg-white border-top sticky-bottom">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small">總計 (3小時)</span>
+                    <span class="fw-bold fs-5 text-danger" id="profile-total-price">$1,140</span>
+                </div>
+                <button class="btn btn-cb-primary" onclick="goToCheckout()">確認預約</button>
+            </div>
+        </div>
+
+        <!-- VIEW 5: Checkout 結帳 -->
+        <div id="view-checkout" class="view-section">
+            <div class="p-3">
+                <h5 class="fw-bold mb-3">確認訂單</h5>
+                
+                <div class="cb-card mx-0">
+                    <div class="d-flex mb-3">
+                        <img src="https://randomuser.me/api/portraits/women/68.jpg" class="rounded me-3" width="60" height="60" style="object-fit:cover">
+                        <div>
+                            <h6 class="fw-bold mb-1">林淑芬 (L2)</h6>
+                            <small class="text-muted">居家照護</small>
+                        </div>
+                    </div>
+                    <div class="bg-light p-2 rounded small text-muted mb-2">
+                        <i class="far fa-calendar-alt me-2"></i> 2025-11-25 (二)<br>
+                        <i class="far fa-clock me-2"></i> 09:00 - 12:00 (3小時)<br>
+                        <i class="fas fa-map-marker-alt me-2"></i> 南投縣草屯鎮中正路55號
+                    </div>
+                </div>
+
+                <div class="cb-card mx-0">
+                    <h6 class="fw-bold mb-3">費用明細</h6>
+                    <div class="d-flex justify-content-between mb-1 small">
+                        <span class="text-muted">照護費用 ($380 x 3)</span>
+                        <span>$1,140</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1 small">
+                        <span class="text-muted">平台服務費 (內含)</span>
+                        <span>$0</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1 small text-success">
+                        <span><i class="fas fa-shield-alt"></i> 專業責任險</span>
+                        <span>免費</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between fw-bold">
+                        <span>總計</span>
+                        <span class="text-danger">$1,140</span>
+                    </div>
+                </div>
+
+                <div class="cb-card mx-0">
+                    <h6 class="fw-bold mb-3">付款方式</h6>
+                    <div class="d-flex align-items-center justify-content-between border p-2 rounded mb-2 selected" style="border-color: var(--cb-green) !important; background: #f0fffd;">
+                        <div><i class="fab fa-apple fa-lg me-2"></i> Apple Pay</div>
+                        <i class="fas fa-check-circle text-success"></i>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between border p-2 rounded">
+                        <div><i class="far fa-credit-card fa-lg me-2"></i> 信用卡 **** 8888</div>
+                    </div>
+                </div>
+
+                <button class="btn btn-cb-primary mt-2" onclick="submitOrder()">立即付款並預約</button>
+            </div>
+        </div>
+
+        <!-- VIEW 6: Village O2O 莊園 -->
+        <div id="view-village-tab" class="view-section">
+            <div class="position-relative">
+                <img src="https://images.unsplash.com/photo-1580587771525-78b9dba3b91d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" class="w-100" style="height: 250px; object-fit: cover;">
+                <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(transparent, rgba(0,0,0,0.8)); color: white;">
+                    <h3 class="fw-bold mb-0">CareBridge 莊園</h3>
+                    <p class="mb-0 opacity-75"><i class="fas fa-map-marker-alt"></i> 南投草屯・頂級養生聚落</p>
+                </div>
+            </div>
+            
+            <div class="p-3">
+                <div class="d-flex gap-2 mb-4 overflow-auto pb-2">
+                    <button class="btn btn-outline-dark rounded-pill active text-nowrap">短期喘息</button>
+                    <button class="btn btn-outline-dark rounded-pill text-nowrap">術後靜養</button>
+                    <button class="btn btn-outline-dark rounded-pill text-nowrap">長住參觀</button>
+                </div>
+
+                <h5 class="fw-bold mb-3">精選房型</h5>
+                
+                <!-- Room Card 1 -->
+                <div class="card border-0 shadow-sm mb-3 overflow-hidden">
+                    <div class="row g-0">
+                        <div class="col-4">
+                            <img src="https://images.unsplash.com/photo-1590490360182-c33d57733427?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" class="img-fluid h-100" style="object-fit: cover;">
+                        </div>
+                        <div class="col-8">
+                            <div class="card-body p-3">
+                                <h6 class="fw-bold">尊爵單人房 (含L3照護)</h6>
+                                <p class="small text-muted mb-2">包含三餐、24H 護理站連線、每日復健課程。</p>
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <span class="text-danger fw-bold">$3,500<small>/晚</small></span>
+                                    <button class="btn btn-sm btn-outline-primary">查看</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Room Card 2 -->
+                <div class="card border-0 shadow-sm mb-3 overflow-hidden">
+                    <div class="row g-0">
+                        <div class="col-4">
+                            <img src="https://images.unsplash.com/photo-1560185127-6ed189bf02f4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" class="img-fluid h-100" style="object-fit: cover;">
+                        </div>
+                        <div class="col-8">
+                            <div class="card-body p-3">
+                                <h6 class="fw-bold">景觀雙人房</h6>
+                                <p class="small text-muted mb-2">適合夫妻同住，面鳥嘴潭景觀，全室無障礙設計。</p>
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <span class="text-danger fw-bold">$5,200<small>/晚</small></span>
+                                    <button class="btn btn-sm btn-outline-primary">查看</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- VIEW 7: Profile 個人中心 -->
+        <div id="view-profile-tab" class="view-section">
+            <div class="bg-white p-4 pb-5 mb-3 border-bottom">
+                <div class="d-flex align-items-center">
+                    <img src="https://randomuser.me/api/portraits/men/85.jpg" class="rounded-circle me-3" width="60">
+                    <div>
+                        <h5 class="fw-bold mb-0">李大明</h5>
+                        <span class="badge bg-warning text-dark"><i class="fas fa-crown"></i> 莊園白金會員</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container px-3" style="margin-top: -30px;">
+                <div class="cb-card mx-0 d-flex justify-content-around text-center py-3">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-primary">12</h5>
+                        <small class="text-muted">優惠券</small>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-primary">850</h5>
+                        <small class="text-muted">積分</small>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-primary">5</h5>
+                        <small class="text-muted">收藏</small>
+                    </div>
+                </div>
+
+                <div class="list-group rounded-3 shadow-sm border-0 mb-3">
+                    <button class="list-group-item list-group-item-action border-0 py-3">
+                        <i class="fas fa-file-alt text-secondary me-3" style="width:20px"></i> 歷史訂單
+                    </button>
+                    <button class="list-group-item list-group-item-action border-0 py-3">
+                        <i class="fas fa-wallet text-secondary me-3" style="width:20px"></i> 我的錢包
+                    </button>
+                    <button class="list-group-item list-group-item-action border-0 py-3">
+                        <i class="fas fa-users text-secondary me-3" style="width:20px"></i> 家人檔案管理
+                    </button>
+                </div>
+
+                <div class="list-group rounded-3 shadow-sm border-0 mb-3">
+                    <button class="list-group-item list-group-item-action border-0 py-3">
+                        <i class="fas fa-headset text-secondary me-3" style="width:20px"></i> 客服中心
+                    </button>
+                    <button class="list-group-item list-group-item-action border-0 py-3 text-danger">
+                        <i class="fas fa-sign-out-alt me-3" style="width:20px"></i> 登出
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('home', this)">
+            <i class="fas fa-home"></i>首頁
+        </div>
+        <div class="nav-item" onclick="switchTab('orders', this)">
+            <i class="fas fa-file-alt"></i>訂單
+        </div>
+        <div class="nav-item" onclick="switchTab('village', this)">
+            <i class="fas fa-hotel"></i>莊園
+        </div>
+        <div class="nav-item" onclick="switchTab('profile', this)">
+            <i class="fas fa-user"></i>我的
+        </div>
+    </div>
+
+</div>
+
+<!-- 模擬 Loading Modal -->
+<div class="modal fade" id="loadingModal" data-bs-backdrop="static" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content border-0 bg-transparent shadow-none">
+      <div class="text-center">
+        <div class="spinner-border text-light mb-2" role="status" style="width: 3rem; height: 3rem;"></div>
+        <h6 class="text-white">AI 智能媒合中...</h6>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 模擬路由歷史
+    let viewHistory = ['view-home'];
+
+    // 切換底部導航 (Tab)
+    function switchTab(tabName, el) {
+        // UI 更新
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        if(el) el.classList.add('active');
+        else {
+            // 手動切換時找對應的 icon 亮起
+            const index = ['home', 'orders', 'village', 'profile'].indexOf(tabName);
+            if(index > -1) document.querySelectorAll('.nav-item')[index].classList.add('active');
+        }
+
+        // View 切換
+        let targetView = '';
+        if(tabName === 'home') targetView = 'view-home';
+        else if(tabName === 'village') targetView = 'view-village-tab';
+        else if(tabName === 'profile') targetView = 'view-profile-tab';
+        else if(tabName === 'orders') {
+            alert('訂單頁面功能與首頁「進行中訂單」相同，請從首頁點擊卡片演示。');
+            return;
+        }
+
+        navigateTo(targetView);
+    }
+
+    // 頁面導航核心函式
+    function navigateTo(viewId) {
+        // 隱藏所有頁面
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        // 顯示目標頁面
+        document.getElementById(viewId).classList.add('active');
+        
+        // 歷史堆疊管理
+        viewHistory.push(viewId);
+        updateHeaderState(viewId);
+        window.scrollTo(0,0);
+    }
+
+    // 返回功能
+    function goBack() {
+        if (viewHistory.length > 1) {
+            viewHistory.pop(); // 移除當前頁
+            const prevView = viewHistory[viewHistory.length - 1];
+            
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(prevView).classList.add('active');
+            updateHeaderState(prevView);
+        }
+    }
+
+    // 更新 Header 狀態 (標題、返回鍵)
+    function updateHeaderState(viewId) {
+        const backBtn = document.getElementById('backBtn');
+        const title = document.getElementById('pageTitle');
+
+        if (viewId === 'view-home') {
+            backBtn.style.display = 'none';
+            title.innerText = 'CareBridge';
+        } else {
+            backBtn.style.display = 'block';
+            switch(viewId) {
+                case 'view-booking-form': title.innerText = '填寫需求'; break;
+                case 'view-caregiver-list': title.innerText = '選擇照服員'; break;
+                case 'view-profile': title.innerText = '照服員簡介'; break;
+                case 'view-checkout': title.innerText = '確認訂單'; break;
+                case 'view-village-tab': title.innerText = '養生莊園'; break;
+                case 'view-profile-tab': title.innerText = '個人中心'; break;
+            }
+        }
+    }
+
+    // --- 業務邏輯功能 ---
+
+    // 1. 開始預約
+    function startBooking(serviceType) {
+        document.getElementById('selectedServiceType').value = serviceType;
+        navigateTo('view-booking-form');
+    }
+
+    // 2. 標籤切換
+    function toggleTag(el) {
+        el.classList.toggle('bg-primary');
+        el.classList.toggle('text-white');
+        el.classList.toggle('bg-light');
+        el.classList.toggle('text-dark');
+    }
+
+    // 3. 前往照服員列表 (含 Loading 模擬)
+    function goToCaregiverList() {
+        const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+        modal.show();
+        
+        setTimeout(() => {
+            modal.hide();
+            navigateTo('view-caregiver-list');
+        }, 1500); // 模擬 AI 運算 1.5秒
+    }
+
+    // 4. 查看照服員詳情 (動態資料模擬)
+    function viewProfile(id) {
+        // 簡單的資料替換
+        const data = {
+            'caregiver1': { name: '林淑芬', level: 'L2 專業照服員', price: '$1,140', img: 'https://randomuser.me/api/portraits/women/68.jpg' },
+            'caregiver2': { name: '張志豪', level: 'L3 莊園級照服員', price: '$1,500', img: 'https://randomuser.me/api/portraits/men/32.jpg' },
+            'caregiver3': { name: '陳雅婷', level: 'L1 基礎照服員', price: '$750', img: 'https://randomuser.me/api/portraits/women/12.jpg' }
+        };
+
+        const p = data[id];
+        document.getElementById('profile-name').innerText = p.name;
+        document.getElementById('profile-level').innerText = p.level;
+        document.getElementById('profile-total-price').innerText = p.price;
+        document.getElementById('profile-img').src = p.img;
+
+        navigateTo('view-profile');
+    }
+
+    // 5. 前往結帳
+    function goToCheckout() {
+        navigateTo('view-checkout');
+    }
+
+    // 6. 送出訂單
+    function submitOrder() {
+        const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+        document.querySelector('#loadingModal h6').innerText = '處理付款中...';
+        modal.show();
+
+        setTimeout(() => {
+            modal.hide();
+            alert('預約成功！照服員已接單。');
+            // 清空歷史回到首頁
+            viewHistory = ['view-home'];
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-home').classList.add('active');
+            updateHeaderState('view-home');
+        }, 2000);
+    }
+
+    function goToOrderTracking() {
+        alert('此功能將顯示即時 GPS 地圖 (類似 Uber)，顯示照服員位置與預計抵達時間。');
+    }
+
+</script>
+
+</body>
+</html>
